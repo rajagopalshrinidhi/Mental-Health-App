@@ -6,8 +6,10 @@
     <title>Mental Health Companion</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f0f8ff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-image: url('background.jpg'); /* Adjust the path if necessary */
+            background-size: cover;
+            background-position: center;
             color: #333;
             display: flex;
             justify-content: center;
@@ -18,36 +20,57 @@
         #chat {
             max-width: 600px;
             width: 100%;
-            background: #fff;
+            background: rgba(255, 255, 255, 0.9); /* Slightly transparent background */
             padding: 20px;
             border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
         }
-        .message {
-            margin: 10px 0;
+        h1 {
+            text-align: center;
+            color: #00796b;
         }
-        .user {
-            color: blue;
-        }
-        .agent {
-            color: green;
-        }
-        input[type="text"] {
-            width: calc(100% - 60px);
+        #messages {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 20px;
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 5px;
+            background-color: #f1f8e9;
+        }
+        .message {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .user {
+            background-color: #bbdefb;
+            text-align: right;
+        }
+        .agent {
+            background-color: #c8e6c9;
+        }
+        .input-container {
+            display: flex;
+            align-items: center;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-right: 10px;
         }
         button {
             padding: 10px 20px;
             border: none;
-            background-color: #007bff;
+            background-color: #00796b;
             color: white;
             border-radius: 5px;
             cursor: pointer;
         }
         button:hover {
-            background-color: #0056b3;
+            background-color: #004d40;
         }
     </style>
 </head>
@@ -55,8 +78,10 @@
     <div id="chat">
         <h1>Welcome to your Mental Health Companion!</h1>
         <div id="messages"></div>
-        <input type="text" id="userInput" placeholder="How are you feeling?" />
-        <button onclick="sendMessage()">Send</button>
+        <div class="input-container">
+            <input type="text" id="userInput" placeholder="How are you feeling?" />
+            <button onclick="sendMessage()">Send</button>
+        </div>
     </div>
 
     <script>
@@ -86,6 +111,7 @@
             message.className = `message ${sender}`;
             message.textContent = `${sender === 'user' ? 'You' : 'Companion'}: ${text}`;
             messages.appendChild(message);
+            messages.scrollTop = messages.scrollHeight;  // Auto-scroll to the bottom
             document.getElementById('userInput').value = '';
         }
     </script>

@@ -15,7 +15,11 @@ class MentalHealthAgent:
         """
         Builds a dynamic prompt using the context and the current input.
         """
-        prompt = "You are a mental health companion providing empathetic and supportive responses.\n\n"
+        prompt = (
+            "You are a mental health companion providing empathetic and supportive responses. "
+            "You should not answer any technical, mathematical, or unrelated questions. "
+            "Keep the conversation focused on mental health and well-being.\n\n"
+        )
         for exchange in self.context:
             prompt += f"User: {exchange['user']}\nAgent: {exchange['agent']}\n"
         prompt += f"User: {user_input}\nAgent:"
