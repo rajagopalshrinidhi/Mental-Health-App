@@ -1,5 +1,6 @@
-# agent.py
-class MentalHealthAgent:
+import asyncio
+
+class ConversationManager:
     def __init__(self):
         self.context = []
 
@@ -15,21 +16,17 @@ class MentalHealthAgent:
         """
         Builds a dynamic prompt using the context and the current input.
         """
-        prompt = (
-            "You are a mental health companion providing empathetic and supportive responses. "
-            "You should not answer any technical, mathematical, or unrelated questions. "
-            "Keep the conversation focused on mental health and well-being.\n\n"
-        )
+        prompt = ""
         for exchange in self.context:
             prompt += f"User: {exchange['user']}\nAgent: {exchange['agent']}\n"
         prompt += f"User: {user_input}\nAgent:"
         return prompt
 
-    def process_input(self, user_input, get_response_fn):
+    async def process_input(self, user_input, get_response_fn):
         """
         Processes user input, sends it to the Vertex AI model, and returns the response.
         """
         prompt = self.build_prompt(user_input)
-        response = get_response_fn(prompt)
+        response = await get_response_fn(prompt)
         self.update_context(user_input, response)
         return response

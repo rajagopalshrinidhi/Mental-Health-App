@@ -1,16 +1,44 @@
-import google.generativeai as genai
+from pydantic_ai import Agent, ModelRetry
+from pydantic_ai.models.vertexai import VertexAIModel
+from pydantic import BaseModel
+import os
 
-def get_mental_health_response(prompt):
-    """Interact with Google Generative AI to get a response for the given prompt."""
-    # Initialize the API with your API key
-    genai.configure(api_key="AIzaSyAt1GqToNZuopuJxnQoLq17T0tE93--M3k")
+# --- Google Cloud Configuration ---
+PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT")
+SERVICE_ACCOUNT_FILE = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+LOCATION = "us-central1"
+MODEL = "gemini-1.5-flash"
 
-    # Generate the response using the model
-    model = genai.GenerativeModel('gemini-1.5-flash')
+class MentalHealthResponse(BaseModel):
+    text: str
 
-    response = model.generate_content(prompt)
+class MentalHealthAgent(Agent):
+    model = VertexAIModel(
+        model_name=MODEL,
+        service_account_file=SERVICE_ACCOUNT_FILE,
+        project_id=PROJECT_ID,
+        region=LOCATION,
+    )
+    result_type = MentalHealthResponse
 
-    #print(response.text)
+    system_prompt = """
+        You are a mental health companion providing empathetic and supportive responses.
+        You should not answer any technical, mathematical, or unrelated questions.
+        Keep the conversation focused on mental health and well-being.
+    """
 
-    # Extract and return the generated text
-    return response.text
+    @staticmethod
+    def validate_response(response: MentalHealthResponse) -> MentalHealthResponse:
+        if not response.text:
+            raise ModelRetry("The response is empty.")
+        return response
+
+async def get_mental_health_response(prompt: str) -> str:
+    agent = MentalHealthAgent(model=VertexAIModel(
+        model_name=MODEL,
+        service_account_file=SERVICE_ACCOUNT_FILE,
+        project_id=PROJECT_ID,
+        region=LOCATION,
+    ))
+    response = await agent.run(prompt)
+    return response.data

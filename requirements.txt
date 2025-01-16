@@ -2,3 +2,4 @@ google-cloud-aiplatform
 fastapi
 uvicorn
 google-generativeai
+pydantic_ai

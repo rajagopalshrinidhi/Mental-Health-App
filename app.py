@@ -1,12 +1,12 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 from fastapi.staticfiles import StaticFiles
-from agent import MentalHealthAgent
+from pydantic import BaseModel
+from agent import ConversationManager
 from vertex_ai import get_mental_health_response
 
 app = FastAPI()
-agent = MentalHealthAgent()  # Initialize a global agent
+conversation_manager = ConversationManager()  # Initialize a global conversation manager
 
 # Allow CORS for local development
 app.add_middleware(
@@ -17,18 +17,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 class UserInput(BaseModel):
     prompt: str
 
 @app.post("/api/mental-health")
-def mental_health(input: UserInput):
+async def mental_health(input: UserInput):
     """API endpoint to handle mental health prompts."""
     user_input = input.prompt
     if not user_input:
         raise HTTPException(status_code=400, detail="No input provided")
 
-    response = agent.process_input(user_input, get_mental_health_response)
+    response = await conversation_manager.process_input(user_input, get_mental_health_response)
     return {"response": response}
 
 # Serve static files from the "frontend" directory
