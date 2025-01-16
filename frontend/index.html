@@ -75,6 +75,7 @@
             background-color: #004d40;
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
     <div id="chat">
@@ -114,7 +115,7 @@
             const messages = document.getElementById('messages');
             const message = document.createElement('div');
             message.className = `message ${sender}`;
-            message.textContent = `${sender === 'user' ? 'You' : 'Companion'}: ${text}`;
+            message.innerHTML = `${sender === 'user' ? 'You' : 'Companion'}: ${marked.parse(text)}`;
             messages.appendChild(message);
             messages.scrollTop = messages.scrollHeight;  // Auto-scroll to the bottom
             document.getElementById('userInput').value = '';
