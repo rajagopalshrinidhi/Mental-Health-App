@@ -1,5 +1,3 @@
-import asyncio
-
 class ConversationManager:
     def __init__(self):
         self.context = []

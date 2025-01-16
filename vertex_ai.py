@@ -29,7 +29,7 @@ class MentalHealthAgent(Agent):
 
     @staticmethod
     def validate_response(response: MentalHealthResponse) -> MentalHealthResponse:
-        if not response.text:
+        if not response:
             raise ModelRetry("The response is empty.")
         return response
 
