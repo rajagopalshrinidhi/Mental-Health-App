@@ -39,6 +39,8 @@ Welcome to the Mental Health Companion! This project provides a supportive and e
 
 ### Installation
 
+NOTE: These instructions are for Mac, and the bash file name could vary depending on your OS.
+
 1. Clone the repository:
 
 ```sh
@@ -67,7 +69,7 @@ nano ~/.bash_profile
 Add the export line:
 
 ```sh
-export GOOGLE_APPLICATION_CREDENTIALS="/Users/srajagop/Downloads/GCP_SA_Key.json"
+export GOOGLE_APPLICATION_CREDENTIALS="<path to json service account key>"
 ```
 Save the file and exit (Ctrl + O, then Enter, followed by Ctrl + X).
 
