@@ -33,9 +33,6 @@ Welcome to the Mental Health Companion! This project provides a supportive and e
 - Uvicorn
 - Pydantic
 - Google Generative AI
-- PRAW (Python Reddit API Wrapper)
-- httpx
-- BeautifulSoup
 
 ### Installation
 
