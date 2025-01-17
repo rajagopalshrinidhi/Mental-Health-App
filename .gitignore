@@ -1,5 +1,4 @@
 *__pycache__/*
 *.venv/*
 *.pytest_cache/*
-__pycache__/agent.cpython-311.pyc
-__pycache__/vertex_ai.cpython-311.pyc
+__pycache__/
