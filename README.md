@@ -80,9 +80,13 @@ source ~/.bash_profile
 ## Running the Application
 
 ### Start the FastAPI server
+Run the following to start the application, after changing your directory to the root of the project (Mental Health App), if you are not already in it:
+```sh
+python app.py
+```
 Open your web browser and navigate to http://localhost:8000 to access the Mental Health Companion UI.
 
 ### Usage
 Type your feelings or thoughts into the input box and click "Send".
 The chatbot will respond with empathetic and supportive messages.
-Type 'exit' to end the conversation.
+Type 'exit' to end the conversation and then close the webpage.
