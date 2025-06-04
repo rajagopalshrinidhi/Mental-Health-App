@@ -1,0 +1,22 @@
+version: '3.9'
+services:
+  backend:
+    build: .
+    container_name: mental-health-backend
+    ports:
+      - "8000:8000"
+    environment:
+    - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials/key.json
+    - GOOGLE_CLOUD_PROJECT=spheric-hawk-447520-e5
+    volumes:
+    - /users/shrinidhirajagopal/Downloads/GCP_SA_Key.json:/app/credentials/key.json:ro
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: mental-health-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend

@@ -7,7 +7,11 @@ import os
 PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT")
 SERVICE_ACCOUNT_FILE = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
 LOCATION = "us-central1"
-MODEL = "gemini-1.5-flash"
+MODEL = "gemini-2.5-flash-preview-05-20"
+
+# Validate environment variables
+if not PROJECT_ID or not SERVICE_ACCOUNT_FILE:
+    raise ValueError("Environment variables GOOGLE_CLOUD_PROJECT and GOOGLE_APPLICATION_CREDENTIALS must be set.")
 
 class MentalHealthResponse(BaseModel):
     text: str
@@ -30,6 +34,8 @@ class MentalHealthAgent(Agent):
     @staticmethod
     def validate_response(response: MentalHealthResponse) -> MentalHealthResponse:
         if not response:
+            # Log the error for debugging
+            print("Empty response received. Retrying...")
             raise ModelRetry("The response is empty.")
         return response
 

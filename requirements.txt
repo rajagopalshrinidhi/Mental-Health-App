@@ -1,5 +1,7 @@
-google-cloud-aiplatform
+google-cloud-aiplatform==1.33.0
 fastapi
-uvicorn
-google-generativeai
+uvicorn==0.22.0
+google-generativeai==0.3.0
+pydantic
 pydantic_ai
+pydantic-ai-slim
