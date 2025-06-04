@@ -11,14 +11,21 @@ Welcome to the Mental Health Companion! This project provides a supportive and e
 
 ## Project Structure
 ```
-└── 📁Mental Health App
+└── 📁Mental-Health-App
     └── 📁frontend
         └── background.jpg
+        └── Dockerfile
         └── index.html
+        └── package.json
     └── .gitignore
     └── agent.py
     └── app.py
-    └── mental_health_chat.py
+    └── docker-build.sh
+    └── docker-compose.yml
+    └── Dockerfile
+    └── k8s-deployment.yaml
+    └── kube-delete.sh
+    └── kube-deploy.sh
     └── README.md
     └── requirements.txt
     └── vertex_ai.py
@@ -33,59 +40,93 @@ Welcome to the Mental Health Companion! This project provides a supportive and e
 - Uvicorn
 - Pydantic
 - Google Generative AI
+- Docker Desktop (with Kubernetes enabled)
 
-### Installation
+---
 
-NOTE: These instructions are for Mac, and the bash file name could vary depending on your OS.
+## Running the Application with Docker
 
-1. Clone the repository:
+### Build and Run the Docker Image
 
+1. Open Docker Desktop and go to **Settings** > **Resources** > **File Sharing**.
+
+2. Add the directory where your GCP service account key is present (e.g., `/path/to/your/service/account/key.json`).
+
+3. To build and run the app in Docker containers:
 ```sh
-git clone https://github.com/yourusername/mental-health-companion.git
-cd mental-health-companion
+./docker-build.sh
+```
+4. Access the application at:
+   **http://localhost:8000**
+
+5.  To shut down the containers, hit ctrl+c/cmd+c and then run:
+```sh
+docker compose down
 ```
 
-2. Create a virtual environment and activate it:
+---
 
+## Running the Application with Kubernetes
+
+### Starting Kubernetes Cluster from Docker Desktop
+1. Open Docker Desktop and go to **Settings** > **Kubernetes**.
+2. Enable Kubernetes by toggling the switch.
+3. Apply the changes and wait for Kubernetes to start.
+
+### Deploying to Kubernetes
+1. To deploy the pods and start services, run
 ```sh
-python -m venv .venv
-source .venv/bin/activate  # On Windows use `.venv\Scripts\activate`
+./kube-deploy.sh
 ```
 
-3. Install the required dependencies:
+4. Access the application:
+   - App: **http://127.0.0.1:8000**
+
+5. Free up resources - Hit ctrl+c/cmd+c and then:
 ```sh
-pip install -r requirements.txt
+./kube-delete.sh
 ```
 
-4. Set up environment variables for Google Cloud:
+---
 
-```sh
-nano ~/.bash_profile
-```
+## Environment Variables
 
-Add the export line:
+### Setting Up Google Cloud Credentials
+1. Open your terminal and edit your shell profile:
+   ```sh
+   nano ~/.bash_profile
+   ```
 
-```sh
-export GOOGLE_APPLICATION_CREDENTIALS="<path to json service account key>"
-```
-Save the file and exit (Ctrl + O, then Enter, followed by Ctrl + X).
+2. Add the following line:
+   ```sh
+   export GOOGLE_APPLICATION_CREDENTIALS="/path/to/GCP_SA_Key.json"
+   ```
+      ```sh
+   export GOOGLE_CLOUD_PROJECT="<name of Google Cloud project>"
+   ```
 
-Reload the configuration:
+3. Save and reload the profile:
+   ```sh
+   source ~/.bash_profile
+   ```
 
-```sh
-source ~/.bash_profile
-```
+---
 
-## Running the Application
+## Running the Application Locally
 
 ### Start the FastAPI server
-Run the following to start the application, after changing your directory to the root of the project (Mental Health App), if you are not already in it:
+Run the following to start the application:
 ```sh
 python app.py
 ```
-Open your web browser and navigate to http://localhost:8000 to access the Mental Health Companion UI.
 
-### Usage
+Open your web browser and navigate to **http://localhost:8000** to access the Mental Health Companion UI.
+
+---
+
+## Usage
 Type your feelings or thoughts into the input box and click "Send".
 The chatbot will respond with empathetic and supportive messages.
 Type 'exit' to end the conversation and then close the webpage.
+
+---
