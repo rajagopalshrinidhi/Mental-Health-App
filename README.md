@@ -16,8 +16,11 @@ Welcome to the Mental Health Companion! This project provides a supportive and e
         └── background.jpg
         └── Dockerfile
         └── index.html
+        └── package-lock.json
         └── package.json
     └── 📁monitoring
+        └── alert_rules.yml
+        └── alertmanager.yml
         └── 📁grafana
             └── 📁dashboards
                 └── mental-health-mlops.json
@@ -26,20 +29,23 @@ Welcome to the Mental Health Companion! This project provides a supportive and e
                     └── dashboard.yml
                 └── 📁datasources
                     └── prometheus.yml
-        └── alert_rules.yml
-        └── alertmanager.yml
         └── prometheus.yml
     └── .gitignore
     └── agent.py
     └── app.py
-    └── docker-build.sh
     └── docker-compose.yml
     └── Dockerfile
-    └── k8s-deployment.yaml
+    └── enterprise_monitoring.py
+    └── k8s-grafana-dashboard.yaml
+    └── k8s-grafana-jaeger.yaml
+    └── k8s-ingress.yaml
+    └── k8s-mental-health-app.yaml
+    └── k8s-monitoring-stack.yaml
+    └── k8s-prometheus.yaml
     └── kube-delete.sh
-    └── kube-deploy.sh
     └── README.md
     └── requirements.txt
+    └── universal-deploy.sh
     └── vertex_ai.py
 ```
 
@@ -66,12 +72,14 @@ Welcome to the Mental Health Companion! This project provides a supportive and e
 
 3. To build and run the app in Docker containers:
 ```sh
-./docker-build.sh
+./universal-deploy docker
 ```
 4. Access the application at:
    **http://localhost:8000**
+   **Grafana: http://localhost:3001 (admin/admin123)**
+   **Jaeger: http://localhost:16686**
 
-5.  To shut down the containers, hit ctrl+c/cmd+c and then run:
+5.  To shut down the containers:
 ```sh
 docker compose down
 ```
@@ -88,13 +96,16 @@ docker compose down
 ### Deploying to Kubernetes
 1. To deploy the pods and start services, run
 ```sh
-./kube-deploy.sh
+./universal-deploy kubernetes
 ```
 
 4. Access the application:
-   - App: **http://127.0.0.1:8000**
+   - App: http://localhost:8080
+   - Grafana: http://localhost:3001 (admin/admin123)
+   - Jaeger: http://localhost:16686
+   - Prometheus: http://localhost:9090
 
-5. Free up resources - Hit ctrl+c/cmd+c and then:
+5. Free up resources:
 ```sh
 ./kube-delete.sh
 ```
@@ -129,7 +140,7 @@ docker compose down
 ### Start the FastAPI server
 Run the following to start the application:
 ```sh
-python app.py
+./universal-deploy.sh local
 ```
 
 Open your web browser and navigate to **http://localhost:8000** to access the Mental Health Companion UI.
@@ -158,7 +169,6 @@ These are available at the moment when deploying via Docker alone
 
 ### Jaeger (Distributed Tracing)
 - **URL**: http://localhost:16686
-- **Search**: Traces from "mental-health-companion"
 
 ### Alertmanager (Alerts)
 - **URL**: http://localhost:9093

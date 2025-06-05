@@ -19,9 +19,6 @@ opentelemetry-instrumentation-logging==0.42b0
 opentelemetry-propagator-b3==1.21.0
 opentelemetry-exporter-jaeger==1.21.0
 
-# Structured Logging
-structlog==23.2.0
-
 # System Monitoring
 psutil==5.9.6
 

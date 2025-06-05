@@ -5,7 +5,7 @@ import json
 from datetime import datetime
 from typing import Dict, Optional, Any
 from functools import wraps
-import structlog
+import logging
 from prometheus_client import (
     Counter, Histogram, Gauge, Summary, Info,
     generate_latest, CONTENT_TYPE_LATEST, CollectorRegistry
@@ -22,26 +22,14 @@ from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 
-# Configure structured logging with OpenTelemetry
-structlog.configure(
-    processors=[
-        structlog.stdlib.filter_by_level,
-        structlog.stdlib.add_logger_name,
-        structlog.stdlib.add_log_level,
-        structlog.stdlib.PositionalArgumentsFormatter(),
-        structlog.processors.TimeStamper(fmt="iso"),
-        structlog.processors.StackInfoRenderer(),
-        structlog.processors.format_exc_info,
-        structlog.processors.UnicodeDecoder(),
-        structlog.processors.JSONRenderer()
-    ],
-    context_class=dict,
-    logger_factory=structlog.stdlib.LoggerFactory(),
-    wrapper_class=structlog.stdlib.BoundLogger,
-    cache_logger_on_first_use=True,
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
 )
 
-logger = structlog.get_logger()
+logger = logging.getLogger("enterprise_monitoring")
+
 
 # Prometheus Metrics with detailed labeling
 REQUEST_COUNT = Counter(
@@ -164,10 +152,10 @@ class EnterpriseMonitoring:
                 metrics.set_meter_provider(MeterProvider(resource=resource))
                 self.meter = metrics.get_meter(__name__)
             
-            logger.info("OpenTelemetry configured successfully", service=self.service_name)
+            logger.info(f"OpenTelemetry configured successfully for service:{self.service_name}")
             
         except Exception as e:
-            logger.error("Failed to setup OpenTelemetry", error=str(e))
+            logger.error(f"Failed to setup OpenTelemetry: {str(e)}")
             # Fallback to basic setup
             trace.set_tracer_provider(TracerProvider())
             self.tracer = trace.get_tracer(__name__)
@@ -195,7 +183,7 @@ class EnterpriseMonitoring:
                 unit="1"
             )
         except Exception as e:
-            logger.warning("Failed to setup OTel metrics", error=str(e))
+            logger.warning(f"Failed to setup OTel metrics: {str(e)}")
     
     def instrument_fastapi(self, app):
         """Instrument FastAPI with OpenTelemetry"""
@@ -205,7 +193,7 @@ class EnterpriseMonitoring:
             LoggingInstrumentor().instrument(set_logging_format=True)
             logger.info("FastAPI instrumented with OpenTelemetry")
         except Exception as e:
-            logger.warning("Failed to instrument FastAPI", error=str(e))
+            logger.warning(f"Failed to instrument FastAPI: {str(e)}")
         
         return app
     
@@ -272,15 +260,8 @@ class EnterpriseMonitoring:
                     span.set_attribute("request.duration", duration)
                     span.set_status(trace.Status(trace.StatusCode.OK))
                     
-                    logger.info(
-                        "Request completed successfully",
-                        duration=duration,
-                        input_length=len(user_input),
-                        response_length=response_length,
-                        user_agent=user_agent,
-                        trace_id=hex(span.get_span_context().trace_id)
-                    )
-                    
+                    logger.info(f"Request completed successfully in duration {duration:.2f} seconds, user_input_length={len(user_input)}, response_length={response_length} with trace_id={hex(span.get_span_context().trace_id)}")
+
                     return result
                     
                 except Exception as e:
@@ -306,14 +287,7 @@ class EnterpriseMonitoring:
                     span.set_status(trace.Status(trace.StatusCode.ERROR, str(e)))
                     span.set_attribute("error.type", error_type)
                     
-                    logger.error(
-                        "Request failed",
-                        error=str(e),
-                        error_type=error_type,
-                        duration=duration,
-                        trace_id=hex(span.get_span_context().trace_id),
-                        exc_info=True
-                    )
+                    logger.error(f"Request failed:{str(e)}")
                     
                     raise
         
@@ -365,13 +339,7 @@ class EnterpriseMonitoring:
                         span.set_attribute("ai.response.quality", quality_score)
                         span.set_attribute("ai.latency", duration)
                         
-                        logger.info(
-                            "AI request completed",
-                            model=model_name,
-                            duration=duration,
-                            quality_score=quality_score,
-                            trace_id=hex(span.get_span_context().trace_id)
-                        )
+                        logger.info("AI request completed")
                         
                         return result
                         
@@ -392,14 +360,7 @@ class EnterpriseMonitoring:
                         span.record_exception(e)
                         span.set_status(trace.Status(trace.StatusCode.ERROR, str(e)))
                         
-                        logger.error(
-                            "AI request failed",
-                            model=model_name,
-                            error=str(e),
-                            duration=duration,
-                            trace_id=hex(span.get_span_context().trace_id),
-                            exc_info=True
-                        )
+                        logger.error(f"AI request failed: {str(e)}")
                         
                         raise
             
@@ -433,12 +394,7 @@ class EnterpriseMonitoring:
                 USER_SATISFACTION.observe(satisfaction_score)
                 span.set_attribute("conversation.satisfaction", satisfaction_score)
             
-            logger.info(
-                "Conversation tracked",
-                session_id=session_id,
-                message_count=message_count,
-                satisfaction=satisfaction_score
-            )
+            logger.info(f"Conversation tracked - sesssion: {session_id}, messages: {message_count}, satisfaction: {satisfaction_score}")
     
     def update_session_count(self, session_id: str, action: str):
         """Update active session count"""
@@ -474,7 +430,7 @@ class EnterpriseMonitoring:
         except ImportError:
             logger.warning("psutil not available, skipping system metrics")
         except Exception as e:
-            logger.warning("Error updating system metrics", error=str(e))
+            logger.warning(f"Error updating system metrics:{str(e)}")
     
     def _calculate_quality_score(self, response: str) -> float:
         """Calculate response quality score (mock implementation)"""
@@ -501,7 +457,7 @@ class EnterpriseMonitoring:
                 self.update_system_metrics()
                 await asyncio.sleep(30)  # Update every 30 seconds
             except Exception as e:
-                logger.error("Error updating system metrics", error=str(e))
+                logger.error(f"Error updating system metrics:{str(e)}")
                 await asyncio.sleep(60)  # Retry in 1 minute
 
 # Global monitoring instance

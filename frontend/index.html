@@ -7,7 +7,7 @@
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-image: url('background.jpg'); /* Adjust the path if necessary */
+            background-image: url('background.jpg');
             background-size: cover;
             background-position: center;
             color: #333;
@@ -20,7 +20,7 @@
         #chat {
             max-width: 600px;
             width: 100%;
-            background: rgba(255, 255, 255, 0.9); /* Slightly transparent background */
+            background: rgba(255, 255, 255, 0.9);
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
@@ -61,7 +61,7 @@
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 5px;
-            margin-right: 10px; /* Add space between the textbox and the button */
+            margin-right: 10px;
         }
         button {
             padding: 10px 20px;
@@ -74,12 +74,28 @@
         button:hover {
             background-color: #004d40;
         }
+        .status {
+            text-align: center;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        .status.connected { color: #4caf50; }
+        .status.error { color: #f44336; }
+        .status.trying { color: #ff9800; }
+        .env-info {
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 10px;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
     <div id="chat">
         <h1>Welcome to your Mental Health Companion!</h1>
+        <div id="env-info" class="env-info"></div>
+        <div id="status" class="status">Detecting environment...</div>
         <div id="messages"></div>
         <div class="input-container">
             <input type="text" id="userInput" placeholder="How are you feeling?" />
@@ -88,11 +104,80 @@
     </div>
 
     <script>
+        // UNIVERSAL BACKEND DETECTION - Works on Kubernetes, Docker, and Local
+        let API_BASE_URL = null;
+        let ENVIRONMENT = 'unknown';
+
+        // Potential backend URLs to try in order
+        const BACKEND_URLS = [
+            { url: 'http://localhost:8080', env: 'Kubernetes (port-forward)' },
+            { url: 'http://localhost:8000', env: 'Docker Compose / Local' },
+            { url: 'http://backend-service', env: 'Kubernetes (internal)' },
+            { url: 'http://mental-health-backend', env: 'Docker Compose (internal)' },
+            { url: 'http://127.0.0.1:8000', env: 'Local development' },
+            { url: 'http://127.0.0.1:8080', env: 'Local (alt port)' }
+        ];
+
+        // Auto-detect backend URL
+        async function detectBackend() {
+            const statusEl = document.getElementById('status');
+            const envEl = document.getElementById('env-info');
+            
+            statusEl.textContent = 'Detecting backend...';
+            statusEl.className = 'status trying';
+
+            for (const backend of BACKEND_URLS) {
+                try {
+                    console.log(`Trying: ${backend.url}`);
+                    
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s timeout
+                    
+                    const response = await fetch(`${backend.url}/health`, {
+                        signal: controller.signal,
+                        mode: 'cors'
+                    });
+                    
+                    clearTimeout(timeoutId);
+                    
+                    if (response.ok) {
+                        API_BASE_URL = backend.url;
+                        ENVIRONMENT = backend.env;
+                        
+                        statusEl.textContent = `Connected ✅ (${ENVIRONMENT})`;
+                        statusEl.className = 'status connected';
+                        envEl.textContent = `Environment: ${ENVIRONMENT} | Backend: ${API_BASE_URL}`;
+                        
+                        console.log(`✅ Connected to: ${API_BASE_URL} (${ENVIRONMENT})`);
+                        return true;
+                    }
+                } catch (error) {
+                    console.log(`❌ Failed: ${backend.url} - ${error.message}`);
+                    continue;
+                }
+            }
+            
+            // No backend found
+            statusEl.textContent = '❌ No backend found. Check if the backend is running.';
+            statusEl.className = 'status error';
+            envEl.textContent = 'Tried: localhost:8080, localhost:8000, and internal services';
+            
+            console.error('❌ No backend URL worked');
+            return false;
+        }
+
+        // Send message function
         async function sendMessage() {
+            if (!API_BASE_URL) {
+                addMessage('agent', 'Error: Backend not connected. Please refresh the page.');
+                return;
+            }
+
             const userInput = document.getElementById('userInput').value;
             if (userInput.trim() === '') {
-                return; // Do not send empty messages
+                return;
             }
+            
             if (userInput.toLowerCase() === 'exit') {
                 addMessage('user', userInput);
                 addMessage('agent', "Take care! Remember, you're not alone. Goodbye!");
@@ -100,15 +185,38 @@
             }
 
             addMessage('user', userInput);
+            
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = 'Sending message...';
+            statusEl.className = 'status trying';
 
-            const response = await fetch('http://localhost:8000/api/mental-health', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt: userInput })
-            });
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/mental-health`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ prompt: userInput })
+                });
 
-            const data = await response.json();
-            addMessage('agent', data.response);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                addMessage('agent', data.response);
+                
+                statusEl.textContent = `Connected ✅ (${ENVIRONMENT})`;
+                statusEl.className = 'status connected';
+                
+            } catch (error) {
+                console.error('Error:', error);
+                addMessage('agent', `Error: ${error.message}. Trying to reconnect...`);
+                
+                // Try to reconnect
+                setTimeout(detectBackend, 2000);
+            }
         }
 
         function addMessage(sender, text) {
@@ -117,8 +225,33 @@
             message.className = `message ${sender}`;
             message.innerHTML = `${sender === 'user' ? 'You' : 'Companion'}: ${marked.parse(text)}`;
             messages.appendChild(message);
-            messages.scrollTop = messages.scrollHeight;  // Auto-scroll to the bottom
+            messages.scrollTop = messages.scrollHeight;
             document.getElementById('userInput').value = '';
+        }
+
+        // Enter key support
+        document.getElementById('userInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Auto-detect backend on page load
+        window.onload = function() {
+            detectBackend();
+        };
+
+        // Retry connection button (hidden by default, shown on error)
+        function addRetryButton() {
+            if (!document.getElementById('retryBtn')) {
+                const retryBtn = document.createElement('button');
+                retryBtn.id = 'retryBtn';
+                retryBtn.textContent = 'Retry Connection';
+                retryBtn.onclick = detectBackend;
+                retryBtn.style.margin = '10px auto';
+                retryBtn.style.display = 'block';
+                document.getElementById('chat').appendChild(retryBtn);
+            }
         }
     </script>
 </body>

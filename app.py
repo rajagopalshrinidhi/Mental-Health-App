@@ -9,10 +9,14 @@ from pydantic import BaseModel
 from agent import ConversationManager
 from vertex_ai import get_mental_health_response
 from enterprise_monitoring import enterprise_monitor, generate_latest, CONTENT_TYPE_LATEST
-import structlog
+import logging
 
 # Configure structured logging
-logger = structlog.get_logger()
+logger = logging.getLogger("mental_health_companion")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -91,13 +95,7 @@ async def mental_health(input: UserInput, request: Request):
         message_count = 1
         enterprise_monitor.track_conversation(session_id, message_count, quality_score)
         
-        logger.info(
-            "Request completed successfully",
-            session_id=session_id,
-            response_time_ms=response_time_ms,
-            quality_score=quality_score,
-            user_agent=user_agent
-        )
+        logger.info(f"Request completed successfully in session {session_id} with response time {response_time_ms:.2f} ms and quality score {quality_score:.2f}")
         
         return MentalHealthResponse(
             response=response,
@@ -108,12 +106,7 @@ async def mental_health(input: UserInput, request: Request):
         )
         
     except Exception as e:
-        logger.error(
-            "Error processing mental health request",
-            session_id=session_id,
-            error=str(e),
-            exc_info=True
-        )
+        logger.error(f"Error processing mental health request in session {session_id}. The error is {str(e)}")
         enterprise_monitor.update_session_count(session_id, 'end')
         raise HTTPException(
             status_code=500,
@@ -250,38 +243,12 @@ if __name__ == '__main__':
     
     start_time = time.time()
     
-    logger.info(
-        "Starting Mental Health Companion with Enterprise MLOps",
-        version="1.2.0",
-        monitoring_stack=["prometheus", "grafana", "jaeger", "opentelemetry"]
-    )
+    logger.info("Starting Mental Health Companion with Enterprise MLOps Version 1.2.0")
+
     
     uvicorn.run(
         app, 
         host="0.0.0.0", 
         port=8000,
-        log_config={
-            "version": 1,
-            "disable_existing_loggers": False,
-            "formatters": {
-                "default": {
-                    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-                },
-                "json": {
-                    "()": "structlog.stdlib.ProcessorFormatter",
-                    "processor": "structlog.processors.JSONRenderer",
-                }
-            },
-            "handlers": {
-                "default": {
-                    "formatter": "json",
-                    "class": "logging.StreamHandler",
-                    "stream": "ext://sys.stdout",
-                },
-            },
-            "root": {
-                "level": "INFO",
-                "handlers": ["default"],
-            },
-        }
+        log_config=None  # Use standard logger configuration
     )
