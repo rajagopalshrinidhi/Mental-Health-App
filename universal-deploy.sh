@@ -72,7 +72,7 @@ build_images() {
 }
 
 deploy_kubernetes() {
-    print_status "🚀 Deploying to Kubernetes..."
+    print_status "Deploying to Kubernetes..."
     
     # Check kubectl
     if ! command -v kubectl &> /dev/null; then
@@ -126,9 +126,9 @@ deploy_kubernetes() {
     
     sleep 5
     
-    print_success "✅ Kubernetes deployment complete!"
+    print_success " Kubernetes deployment complete!"
     echo ""
-    echo "🌐 Access URLs:"
+    echo "Access URLs:"
     echo "   App: http://localhost:8080"
     echo "   Grafana: http://localhost:3001 (admin/admin123)"
     echo "   Jaeger: http://localhost:16686"
@@ -136,7 +136,7 @@ deploy_kubernetes() {
 }
 
 deploy_docker() {
-    print_status "🐳 Deploying with Docker Compose..."
+    print_status "Deploying with Docker Compose..."
     
     # Check docker-compose
     if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
@@ -156,7 +156,7 @@ deploy_docker() {
     # Wait for services
     sleep 10
     
-    print_success "✅ Docker Compose deployment complete!"
+    print_success " Docker Compose deployment complete!"
     echo ""
     echo "🌐 Access URLs:"
     echo "   App: http://localhost:8000"
@@ -165,7 +165,7 @@ deploy_docker() {
 }
 
 deploy_local() {
-    print_status "💻 Setting up local development..."
+    print_status "Setting up local development..."
     
     print_status "Installing Python dependencies..."
     pip install -r requirements.txt
@@ -177,11 +177,11 @@ deploy_local() {
     echo "Frontend will be served by the backend at:"
     echo "http://localhost:8000"
     
-    print_success "✅ Local development setup complete!"
+    print_success " Local development setup complete!"
 }
 
 check_all_environments() {
-    print_status "🔍 Checking all environments..."
+    print_status "Checking all environments..."
     echo ""
     
     # Check Kubernetes
@@ -189,13 +189,13 @@ check_all_environments() {
     if command -v kubectl &> /dev/null && kubectl cluster-info &> /dev/null; then
         K8S_PODS=$(kubectl get pods 2>/dev/null | grep mental-health | wc -l)
         if [ $K8S_PODS -gt 0 ]; then
-            echo "  ✅ Running ($K8S_PODS pods active)"
+            echo "   Running ($K8S_PODS pods active)"
             echo "     App: http://localhost:8080"
         else
-            echo "  ⚪ Available but not deployed"
+            echo "Available but not deployed"
         fi
     else
-        echo "  ❌ Not available"
+        echo " Not available"
     fi
     
     echo ""
@@ -205,13 +205,13 @@ check_all_environments() {
     if command -v docker &> /dev/null; then
         DOCKER_CONTAINERS=$(docker ps | grep mental-health | wc -l)
         if [ $DOCKER_CONTAINERS -gt 0 ]; then
-            echo "  ✅ Running ($DOCKER_CONTAINERS containers active)"
+            echo "   Running ($DOCKER_CONTAINERS containers active)"
             echo "     App: http://localhost:8000"
         else
-            echo "  ⚪ Available but not running"
+            echo "Available but not running"
         fi
     else
-        echo "  ❌ Not available"
+        echo "Not available"
     fi
     
     echo ""
@@ -220,31 +220,30 @@ check_all_environments() {
     echo "Local Development:"
     if [ -f "app.py" ]; then
         if curl -s http://localhost:8000/health > /dev/null 2>&1; then
-            echo "  ✅ Running"
+            echo "   Running"
             echo "     Access: http://localhost:8000"
         else
-            echo "  ⚪ Available but not running"
+            echo "Available but not running"
         fi
     else
-        echo "  ❌ app.py not found"
+        echo "app.py not found"
     fi
     
-    echo ""
     
     # Check what's actually responding
     print_status "Testing backend connectivity..."
     
     for port in 8000 8080; do
         if curl -s http://localhost:$port/health > /dev/null 2>&1; then
-            echo "  ✅ Backend responding on port $port"
+            echo "App responding on port $port"
         else
-            echo "  ❌ No backend on port $port"
+            echo "No backend on port $port"
         fi
     done
 }
 
 test_deployment() {
-    print_status "🧪 Testing deployment..."
+    print_status "Testing deployment..."
     
     # Test backend on multiple ports
     for port in 8000 8080; do
@@ -266,17 +265,10 @@ test_deployment() {
         fi
     done
     
-    # Test frontend
-    for port in 3000; do
-        if curl -s http://localhost:$port > /dev/null; then
-            print_success "Frontend responding on port $port"
-            break
-        fi
-    done
 }
 
 cleanup() {
-    print_status "🧹 Cleaning up..."
+    print_status "Cleaning up..."
     
     # Stop Kubernetes port forwards
     pkill -f "kubectl port-forward" 2>/dev/null || true

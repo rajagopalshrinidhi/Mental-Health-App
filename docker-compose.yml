@@ -14,6 +14,7 @@ services:
   # Main Application
   mental-health-backend:
     build: .
+    image: mental-health-backend:latest
     container_name: mental-health-backend
     ports:
       - "8000:8000"
@@ -28,6 +29,7 @@ services:
       - OTEL_TRACES_EXPORTER=jaeger
       - OTEL_METRICS_EXPORTER=prometheus
       - OTEL_LOGS_EXPORTER=console
+      - ENVIRONMENT=docker
     volumes:
       - /users/shrinidhirajagopal/Downloads/GCP_SA_Key.json:/app/credentials/key.json:ro
     networks:
@@ -44,6 +46,7 @@ services:
     build:
       context: .
       dockerfile: frontend/Dockerfile
+    image: mental-health-frontend:latest
     container_name: mental-health-frontend
     ports:
       - "3000:80"

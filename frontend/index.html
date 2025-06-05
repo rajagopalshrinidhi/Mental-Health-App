@@ -144,25 +144,25 @@
                         API_BASE_URL = backend.url;
                         ENVIRONMENT = backend.env;
                         
-                        statusEl.textContent = `Connected ✅ (${ENVIRONMENT})`;
+                        statusEl.textContent = `Connected  (${ENVIRONMENT})`;
                         statusEl.className = 'status connected';
                         envEl.textContent = `Environment: ${ENVIRONMENT} | Backend: ${API_BASE_URL}`;
                         
-                        console.log(`✅ Connected to: ${API_BASE_URL} (${ENVIRONMENT})`);
+                        console.log(` Connected to: ${API_BASE_URL} (${ENVIRONMENT})`);
                         return true;
                     }
                 } catch (error) {
-                    console.log(`❌ Failed: ${backend.url} - ${error.message}`);
+                    console.log(` Failed: ${backend.url} - ${error.message}`);
                     continue;
                 }
             }
             
             // No backend found
-            statusEl.textContent = '❌ No backend found. Check if the backend is running.';
+            statusEl.textContent = ' No backend found. Check if the backend is running.';
             statusEl.className = 'status error';
             envEl.textContent = 'Tried: localhost:8080, localhost:8000, and internal services';
             
-            console.error('❌ No backend URL worked');
+            console.error(' No backend URL worked');
             return false;
         }
 
@@ -207,7 +207,7 @@
                 const data = await response.json();
                 addMessage('agent', data.response);
                 
-                statusEl.textContent = `Connected ✅ (${ENVIRONMENT})`;
+                statusEl.textContent = `Connected  (${ENVIRONMENT})`;
                 statusEl.className = 'status connected';
                 
             } catch (error) {

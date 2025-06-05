@@ -1,6 +1,6 @@
 # Multi-stage Dockerfile - Build stage + Runtime stage
 # Build stage
-FROM python:3.10-slim as builder
+FROM python:3.10-slim AS builder
 
 WORKDIR /app
 
