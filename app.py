@@ -136,6 +136,7 @@ async def end_conversation(request: dict):
 
 # MLOps Endpoints
 @app.get("/health")
+@enterprise_monitor.track_request
 async def comprehensive_health():
     """Comprehensive health check with detailed system status"""
     import psutil
@@ -153,7 +154,7 @@ async def comprehensive_health():
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
         "service": {
-            "name": "mental-health-companion",
+            "name": "mental-health-app",
             "version": "1.2.0",
             "uptime_seconds": time.time() - start_time if 'start_time' in globals() else 0
         },
@@ -206,6 +207,13 @@ async def debug_trace():
         await asyncio.sleep(0.1)  # Simulate work
         logger.info("Debug trace executed")
         return {"message": "Trace generated", "trace_id": hex(span.get_span_context().trace_id)}
+    
+@app.get("/test-trace")
+async def test_trace():
+    with enterprise_monitor.tracer.start_as_current_span("TEST_TRACE") as span:
+        span.set_attribute("service.name", "mental-health-app")
+        span.set_attribute("test", "explicit")
+        return {"message": "Test trace sent to Jaeger"}
 
 @app.get("/stats/dashboard")
 async def dashboard_stats():
@@ -216,9 +224,9 @@ async def dashboard_stats():
     return {
         "timestamp": datetime.now().isoformat(),
         "service_info": {
-            "name": "mental-health-companion",
+            "name": "mental-health-app",
             "version": "1.2.0",
-            "environment": "production"
+            "environment": "docker"
         },
         "current_metrics": {
             "active_sessions": len(enterprise_monitor.active_sessions),

@@ -16,6 +16,9 @@ from prometheus_client import (
 from opentelemetry import trace, metrics
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
+from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter as GRPCOTLPSpanExporter
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter as HTTPOTLPSpanExporter
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
@@ -118,26 +121,55 @@ APP_INFO = Info(
 class EnterpriseMonitoring:
     """Enterprise-grade monitoring with robust OpenTelemetry setup"""
     
-    def __init__(self, service_name: str = "mental-health-companion"):
-        self.service_name = service_name
+    def __init__(self, service_name: str = "mental-health-app"):
+        self.service_name = "mental-health-app"
         self.active_sessions = set()
-        self.tracing_enabled = False
+        self.tracing_enabled = True
         self.setup_telemetry()
         
         # Set application info
         APP_INFO.info({
             'version': '1.2.0',
-            'service': service_name,
+            'service': "mental-health-app",
             'environment': os.getenv('ENVIRONMENT', 'production'),
             'build_date': datetime.now().isoformat()
         })
-    
+        
+    # def setup_telemetry(self):
+    #     """Setup OpenTelemetry with Console exporter for debugging"""
+    #     try:
+    #         # Create resource
+    #         resource = Resource.create({
+    #             "service.name": "mental-health-app",
+    #             "service.version": "1.2.0",
+    #         })
+            
+    #         logger.info(f"🏷️ Resource service.name: {resource.attributes.get('service.name')}")
+            
+    #         # Setup tracing with console exporter for debugging
+    #         trace.set_tracer_provider(TracerProvider(resource=resource))
+    #         self.tracer = trace.get_tracer(__name__)
+            
+    #         # Use console exporter to see exactly what's being sent
+    #         console_exporter = ConsoleSpanExporter()
+    #         span_processor = SimpleSpanProcessor(console_exporter)
+    #         trace.get_tracer_provider().add_span_processor(span_processor)
+            
+    #         logger.info("✅ Console exporter configured - spans will appear in logs")
+    #         self.tracing_enabled = True
+            
+    #         self.setup_metrics()
+            
+    #     except Exception as e:
+    #         logger.error(f"💥 OpenTelemetry setup failed: {e}")
+    #         self.tracing_enabled = False
+
     def setup_telemetry(self):
-        """Setup OpenTelemetry with multiple fallback options"""
+        """Setup OpenTelemetry with OTLP (modern approach)"""
         try:
             # Check if tracing should be disabled
-            if os.getenv('OTEL_TRACES_EXPORTER') == 'none' or os.getenv('ENVIRONMENT') == 'local':
-                logger.info("Tracing disabled by environment configuration")
+            if os.getenv('OTEL_TRACES_EXPORTER') == 'none':
+                logger.info("🚫 Tracing disabled by OTEL_TRACES_EXPORTER=none")
                 trace.set_tracer_provider(TracerProvider())
                 self.tracer = trace.get_tracer(__name__)
                 self.tracing_enabled = False
@@ -145,100 +177,97 @@ class EnterpriseMonitoring:
             
             # Create resource
             resource = Resource.create({
-                "service.name": self.service_name,
+                "service.name": "mental-health-app",  # This must match what you expect
                 "service.version": "1.2.0",
-                "service.instance.id": f"{self.service_name}-001",
-                "deployment.environment": os.getenv('ENVIRONMENT', 'production')
+                "service.instance.id": f"mental-health-app-001",
+                "deployment.environment": os.getenv('ENVIRONMENT', 'docker')
             })
             
             # Setup tracing
             trace.set_tracer_provider(TracerProvider(resource=resource))
             self.tracer = trace.get_tracer(__name__)
-            
             metrics.set_meter_provider(MeterProvider(resource=resource))
             self.meter = metrics.get_meter(__name__)
 
-                        
-            # Try different exporters in order of preference
             span_processor = None
+            environment = os.getenv('ENVIRONMENT', 'production')
             
-            # Option 1: OTLP HTTP (most reliable)
-            if OTLP_AVAILABLE and not span_processor:
+            logger.info(f"🔧 Setting up OTLP tracing for environment: {environment}")
+            
+            # Option 1: OTLP gRPC (Primary - matches your docker-compose config)
+            try:
+                if environment == 'local':
+                    otlp_endpoint = 'http://localhost:4317'
+                elif environment == 'kubernetes':
+                    otlp_endpoint = 'http://jaeger.mental-health-monitoring:4317'
+                else:  # docker
+                    otlp_endpoint = 'http://jaeger:4317'
+                
+                logger.info(f"🎯 Attempting OTLP gRPC: {otlp_endpoint}")
+                
+                # Make sure we're using the gRPC version
+                from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter as GRPCOTLPSpanExporter
+                
+                otlp_exporter = GRPCOTLPSpanExporter(
+                    endpoint=otlp_endpoint,
+                    insecure=True  # This should work with the gRPC version
+                )
+                
+                span_processor = BatchSpanProcessor(otlp_exporter)
+                logger.info("✅ OTLP gRPC exporter configured successfully")
+                self.tracing_enabled = True
+                
+            except Exception as e:
+                logger.warning(f"❌ OTLP gRPC exporter failed: {e}")
+            
+            # Option 2: OTLP HTTP as fallback
+            if not span_processor:
                 try:
-                    jaeger_endpoint = os.getenv('JAEGER_ENDPOINT', 'http://jaeger:14268/api/traces')
-                    logger.info(f"Attempting OTLP HTTP exporter to {jaeger_endpoint}")
+                    if environment == 'local':
+                        otlp_endpoint = 'http://localhost:4317'
+                    elif environment == 'kubernetes':
+                        otlp_endpoint = 'http://jaeger.mental-health-monitoring:4317'
+                    else:  # docker
+                        otlp_endpoint = 'http://jaeger:4317'
+                    
+                    logger.info(f"🎯 Attempting OTLP gRPC: {otlp_endpoint}")
                     
                     otlp_exporter = OTLPSpanExporter(
-                        endpoint=jaeger_endpoint,
+                        endpoint=otlp_endpoint,
+                        # Use headers for insecure connection instead of insecure parameter
                         headers={}
                     )
+                    
                     span_processor = BatchSpanProcessor(otlp_exporter)
-                    logger.info(" OTLP HTTP exporter configured successfully")
+                    logger.info("✅ OTLP gRPC exporter configured successfully")
                     self.tracing_enabled = True
                     
                 except Exception as e:
-                    logger.warning(f"OTLP HTTP exporter failed: {e}")
+                    logger.warning(f"❌ OTLP gRPC exporter failed: {e}")
             
-            # Option 2: Jaeger Thrift UDP (fallback)
-            if JAEGER_AVAILABLE and not span_processor:
-                try:
-                    jaeger_host = os.getenv('JAEGER_AGENT_HOST', 'jaeger')
-                    jaeger_port = int(os.getenv('JAEGER_AGENT_PORT', '6831'))
-                    logger.info(f"Attempting Jaeger UDP exporter to {jaeger_host}:{jaeger_port}")
-                    
-                    jaeger_exporter = JaegerExporter(
-                        agent_host_name=jaeger_host,
-                        agent_port=jaeger_port
-                    )
-                    span_processor = BatchSpanProcessor(jaeger_exporter)
-                    logger.info(" Jaeger UDP exporter configured successfully")
-                    self.tracing_enabled = True
-                    
-                except Exception as e:
-                    logger.warning(f"Jaeger UDP exporter failed: {e}")
-            
-            # Option 3: Console exporter (development fallback)
+            # Option 3: Console exporter as final fallback
             if not span_processor:
-                logger.info("Using console exporter for development")
+                logger.info("🔧 Using console exporter - traces will appear in logs")
                 console_exporter = ConsoleSpanExporter()
-                span_processor = BatchSpanProcessor(console_exporter)
+                span_processor = SimpleSpanProcessor(console_exporter)
                 self.tracing_enabled = True
             
             # Add span processor
             if span_processor:
                 trace.get_tracer_provider().add_span_processor(span_processor)
             
-            # Setup metrics
-            if PROMETHEUS_READER_AVAILABLE:
-                try:
-                    prometheus_reader = PrometheusMetricReader()
-                    metrics.set_meter_provider(MeterProvider(
-                        resource=resource,
-                        metric_readers=[prometheus_reader]
-                    ))
-                    self.meter = metrics.get_meter(__name__)
-                    logger.info("Prometheus metrics reader configured")
-                except Exception as e:
-                    logger.warning(f"Prometheus reader failed: {e}")
-                    metrics.set_meter_provider(MeterProvider(resource=resource))
-                    self.meter = metrics.get_meter(__name__)
-            else:
-                metrics.set_meter_provider(MeterProvider(resource=resource))
-                self.meter = metrics.get_meter(__name__)
-                        
             self.setup_metrics()
-
-            logger.info(f"OpenTelemetry setup complete for {self.service_name} (tracing: {self.tracing_enabled})")
+            logger.info(f"🎉 OpenTelemetry setup complete for {self.service_name} (tracing: {self.tracing_enabled})")
             
         except Exception as e:
-            logger.error(f"OpenTelemetry setup failed: {e}")
+            logger.error(f"💥 OpenTelemetry setup failed: {e}")
             # Minimal fallback setup
             trace.set_tracer_provider(TracerProvider())
             self.tracer = trace.get_tracer(__name__)
             metrics.set_meter_provider(MeterProvider())
             self.meter = metrics.get_meter(__name__)
             self.tracing_enabled = False
-    
+        
     def setup_metrics(self):
         """Setup custom OpenTelemetry metrics"""
         try:
@@ -264,7 +293,7 @@ class EnterpriseMonitoring:
                 description="Length of conversations in messages",
                 unit="1"
             )
-            logger.info("✅ Custom OTel metrics configured")
+            logger.info("Custom OTel metrics configured")
         except Exception as e:
             logger.warning(f"Failed to setup OTel metrics: {e}")
     
@@ -293,7 +322,8 @@ class EnterpriseMonitoring:
                 span = self.tracer.start_span(
                     f"{func.__name__}",
                     attributes={
-                        "service.name": self.service_name,
+                        "service.name": "mental-health-app",
+                        "service.version": "1.2.0",
                         "operation.name": func.__name__
                     }
                 )
@@ -350,6 +380,7 @@ class EnterpriseMonitoring:
                     span.set_attribute("http.status_code", 200)
                     span.set_attribute("response.length", response_length)
                     span.set_attribute("request.duration", duration)
+
                     span.set_status(trace.Status(trace.StatusCode.OK))
                     span.end()
                 
@@ -439,6 +470,7 @@ class EnterpriseMonitoring:
                         span.set_attribute("ai.response.length", len(str(result)))
                         span.set_attribute("ai.response.quality", quality_score)
                         span.set_attribute("ai.latency", duration)
+
                         span.set_status(trace.Status(trace.StatusCode.OK))
                         span.end()
                     
@@ -483,6 +515,7 @@ class EnterpriseMonitoring:
             ) as span:
                 if satisfaction_score is not None:
                     span.set_attribute("conversation.satisfaction", satisfaction_score)
+
         
         CONVERSATION_METRICS.labels(
             conversation_type='mental_health_support',

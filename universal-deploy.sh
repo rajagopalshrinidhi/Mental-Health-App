@@ -44,7 +44,8 @@ show_usage() {
 
 check_prerequisites() {
     print_status "Checking prerequisites..."
-    
+    export OTEL_TRACES_EXPORTER=jaeger
+
     # Check Docker
     if ! command -v docker &> /dev/null; then
         print_error "Docker is required but not installed"
@@ -166,12 +167,13 @@ deploy_docker() {
 
 deploy_local() {
     print_status "Setting up local development..."
+    export GOOGLE_CLOUD_PROJECT=spheric-hawk-447520-e5
+    export GOOGLE_APPLICATION_CREDENTIALS="/users/shrinidhirajagopal/Downloads/GCP_SA_Key.json"
     
     print_status "Installing Python dependencies..."
     pip install -r requirements.txt
     
     print_status "Starting backend server..."
-    export OTEL_TRACES_EXPORTER=none
     python app.py
     echo ""
     echo "Frontend will be served by the backend at:"

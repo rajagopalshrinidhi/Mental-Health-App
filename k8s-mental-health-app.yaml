@@ -31,7 +31,7 @@ spec:
         - name: GOOGLE_CLOUD_PROJECT
           value: spheric-hawk-447520-e5
         - name: OTEL_SERVICE_NAME
-          value: mental-health-companion
+          value: mental-health-app
         - name: OTEL_SERVICE_VERSION
           value: "1.2.0"
         - name: OTEL_EXPORTER_JAEGER_AGENT_HOST
@@ -41,7 +41,7 @@ spec:
         - name: OTEL_TRACES_EXPORTER
           value: jaeger
         - name: OTEL_RESOURCE_ATTRIBUTES
-          value: service.name=mental-health-companion,service.version=1.2.0,deployment.environment=kubernetes
+          value: service.name=mental-health-app,service.version=1.2.0,deployment.environment=kubernetes
         volumeMounts:
         - name: gcp-key
           mountPath: /app/credentials

@@ -62,6 +62,26 @@ Welcome to the Mental Health Companion! This project provides a supportive and e
 
 ---
 
+### Configuring Google Cloud Project and Application Credentials
+
+Before running the application, ensure the following environment variables are set correctly:
+
+1. **Google Cloud Project**:
+   Update the `GOOGLE_CLOUD_PROJECT` environment variable in the `universal-deploy.sh` script:
+   ```bash
+   export GOOGLE_CLOUD_PROJECT=<your-google-cloud-project-id>
+   ```
+   Replace `<your-google-cloud-project-id>` with your actual Google Cloud project ID.
+
+2. **Google Application Credentials**:
+   Update the `GOOGLE_APPLICATION_CREDENTIALS` environment variable in the `universal-deploy.sh` script:
+   ```bash
+   export GOOGLE_APPLICATION_CREDENTIALS="/path/to/your/GCP_SA_Key.json"
+   ```
+   Replace `/path/to/your/GCP_SA_Key.json` with the actual path to your Google Cloud service account key file.
+
+---
+
 ## Running the Application with Docker
 
 ### Build and Run the Docker Image
@@ -218,9 +238,10 @@ These are available at the moment when deploying via Docker alone
 ## Test Commands for Metrics Generation
 
 ### Generate Traffic
+The app port is 8000 or 8080 depending on the environment.
 ```bash
 for i in {1..20}; do
-  curl -X POST http://localhost:8000/api/mental-health \
+  curl -X POST http://localhost:<app port depending on environment>/api/mental-health \
     -H "Content-Type: application/json" \
     -d "{\"prompt\": \"Test request $i for metrics\", \"session_id\": \"session-$i\"}" &
 done
