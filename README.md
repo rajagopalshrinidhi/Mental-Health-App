@@ -11,16 +11,41 @@ Welcome to the Mental Health Companion! This project provides a supportive and e
 
 ## Project Structure
 ```
-└── 📁Mental Health App
+└── 📁Mental-Health-App
     └── 📁frontend
         └── background.jpg
+        └── Dockerfile
         └── index.html
+        └── package-lock.json
+        └── package.json
+    └── 📁monitoring
+        └── alert_rules.yml
+        └── alertmanager.yml
+        └── 📁grafana
+            └── 📁dashboards
+                └── mental-health-mlops.json
+            └── 📁provisioning
+                └── 📁dashboards
+                    └── dashboard.yml
+                └── 📁datasources
+                    └── prometheus.yml
+        └── prometheus.yml
     └── .gitignore
     └── agent.py
     └── app.py
-    └── mental_health_chat.py
+    └── docker-compose.yml
+    └── Dockerfile
+    └── enterprise_monitoring.py
+    └── k8s-grafana-dashboard.yaml
+    └── k8s-grafana-jaeger.yaml
+    └── k8s-ingress.yaml
+    └── k8s-mental-health-app.yaml
+    └── k8s-monitoring-stack.yaml
+    └── k8s-prometheus.yaml
+    └── kube-delete.sh
     └── README.md
     └── requirements.txt
+    └── universal-deploy.sh
     └── vertex_ai.py
 ```
 
@@ -33,59 +58,185 @@ Welcome to the Mental Health Companion! This project provides a supportive and e
 - Uvicorn
 - Pydantic
 - Google Generative AI
+- Docker Desktop (with Kubernetes enabled)
 
-### Installation
+---
 
-NOTE: These instructions are for Mac, and the bash file name could vary depending on your OS.
+## Running the Application with Docker
 
-1. Clone the repository:
+### Build and Run the Docker Image
 
+1. Open Docker Desktop and go to **Settings** > **Resources** > **File Sharing**.
+
+2. Add the directory where your GCP service account key is present (e.g., `/path/to/your/service/account/key.json`).
+
+3. To build and run the app in Docker containers:
 ```sh
-git clone https://github.com/yourusername/mental-health-companion.git
-cd mental-health-companion
+./universal-deploy docker
+```
+4. Access the application at:
+   **http://localhost:8000**
+   **Grafana: http://localhost:3001 (admin/admin123)**
+   **Jaeger: http://localhost:16686**
+
+5.  To shut down the containers:
+```sh
+docker compose down
 ```
 
-2. Create a virtual environment and activate it:
+---
 
+## Running the Application with Kubernetes
+
+### Starting Kubernetes Cluster from Docker Desktop
+1. Open Docker Desktop and go to **Settings** > **Kubernetes**.
+2. Enable Kubernetes by toggling the switch.
+3. Apply the changes and wait for Kubernetes to start.
+
+### Deploying to Kubernetes
+1. To deploy the pods and start services, run
 ```sh
-python -m venv .venv
-source .venv/bin/activate  # On Windows use `.venv\Scripts\activate`
+./universal-deploy kubernetes
 ```
 
-3. Install the required dependencies:
+4. Access the application:
+   - App: http://localhost:8080
+   - Grafana: http://localhost:3001 (admin/admin123)
+   - Jaeger: http://localhost:16686
+   - Prometheus: http://localhost:9090
+
+5. Free up resources:
 ```sh
-pip install -r requirements.txt
+./kube-delete.sh
 ```
 
-4. Set up environment variables for Google Cloud:
+---
 
-```sh
-nano ~/.bash_profile
-```
+## Environment Variables
 
-Add the export line:
+### Setting Up Google Cloud Credentials
+1. Open your terminal and edit your shell profile:
+   ```sh
+   nano ~/.bash_profile
+   ```
 
-```sh
-export GOOGLE_APPLICATION_CREDENTIALS="<path to json service account key>"
-```
-Save the file and exit (Ctrl + O, then Enter, followed by Ctrl + X).
+2. Add the following line:
+   ```sh
+   export GOOGLE_APPLICATION_CREDENTIALS="/path/to/GCP_SA_Key.json"
+   ```
+      ```sh
+   export GOOGLE_CLOUD_PROJECT="<name of Google Cloud project>"
+   ```
 
-Reload the configuration:
+3. Save and reload the profile:
+   ```sh
+   source ~/.bash_profile
+   ```
 
-```sh
-source ~/.bash_profile
-```
+---
 
-## Running the Application
+## Running the Application Locally
 
 ### Start the FastAPI server
-Run the following to start the application, after changing your directory to the root of the project (Mental Health App), if you are not already in it:
+Run the following to start the application:
 ```sh
-python app.py
+./universal-deploy.sh local
 ```
-Open your web browser and navigate to http://localhost:8000 to access the Mental Health Companion UI.
 
-### Usage
+Open your web browser and navigate to **http://localhost:8000** to access the Mental Health Companion UI.
+
+---
+
+## Usage
 Type your feelings or thoughts into the input box and click "Send".
 The chatbot will respond with empathetic and supportive messages.
 Type 'exit' to end the conversation and then close the webpage.
+
+---
+
+## Monitoring and Metrics
+These are available at the moment when deploying via Docker alone
+
+### Grafana (Dashboards)
+- **URL**: http://localhost:3001
+- **Login**: admin / admin123
+- **Dashboard**: "Mental Health Companion - MLOps Dashboard"
+
+### Prometheus (Metrics)
+- **URL**: http://localhost:9090
+- **Targets**: http://localhost:9090/targets
+- **Graph**: http://localhost:9090/graph
+
+### Jaeger (Distributed Tracing)
+- **URL**: http://localhost:16686
+
+### Alertmanager (Alerts)
+- **URL**: http://localhost:9093
+- **Alerts**: http://localhost:9093/#/alerts
+
+### System Monitoring
+- **Node Exporter**: http://localhost:9100/metrics
+- **cAdvisor**: http://localhost:8080
+
+---
+
+## Metrics Reference & Queries
+
+### HTTP Request Metrics
+- **Total Requests**: `mental_health_requests_total`
+- **Request Rate**: `rate(mental_health_requests_total[5m])`
+- **Requests by Status Code**: `mental_health_requests_total by (status_code)`
+- **Success Rate**: `(sum(rate(mental_health_requests_total{status_code="200"}[5m])) / sum(rate(mental_health_requests_total[5m]))) * 100`
+- **Error Rate**: `sum(rate(mental_health_requests_total{status_code=~"4..|5.."}[5m]))`
+
+### Response Time Metrics
+- **Median Response Time**: `histogram_quantile(0.50, rate(mental_health_request_duration_seconds_bucket[5m]))`
+- **95th Percentile Response Time**: `histogram_quantile(0.95, rate(mental_health_request_duration_seconds_bucket[5m]))`
+- **Slow Requests (>2 seconds)**: `histogram_quantile(0.95, rate(mental_health_request_duration_seconds_bucket[5m])) > 2`
+
+### AI Model Performance Metrics
+- **AI Requests per Second**: `rate(mental_health_ai_requests_total[5m])`
+- **AI Success Rate**: `rate(mental_health_ai_requests_total{status="success"}[5m]) / rate(mental_health_ai_requests_total[5m])`
+- **AI Latency**: `rate(mental_health_ai_latency_seconds_sum[5m]) / rate(mental_health_ai_latency_seconds_count[5m])`
+
+### User Session Metrics
+- **Active Sessions**: `mental_health_active_sessions`
+- **Session Growth Rate**: `deriv(mental_health_active_sessions[10m])`
+
+### Error Tracking Metrics
+- **Error Rate**: `rate(mental_health_errors_total[5m])`
+- **Errors by Type**: `sum(rate(mental_health_errors_total[5m])) by (error_type)`
+- **Critical Errors**: `rate(mental_health_errors_total{severity="critical"}[5m])`
+
+### System Resource Metrics
+- **Memory Usage**: `mental_health_system_resources{resource_type="memory_percent"}`
+- **CPU Usage**: `mental_health_system_resources{resource_type="cpu_percent"}`
+- **High Resource Usage Alert**: `mental_health_system_resources{resource_type="memory_percent"} > 80`
+
+---
+
+## Test Commands for Metrics Generation
+
+### Generate Traffic
+```bash
+for i in {1..20}; do
+  curl -X POST http://localhost:8000/api/mental-health \
+    -H "Content-Type: application/json" \
+    -d "{\"prompt\": \"Test request $i for metrics\", \"session_id\": \"session-$i\"}" &
+done
+```
+
+### Health Checks
+```bash
+curl http://localhost:8000/health
+```
+
+### Metrics Endpoint
+```bash
+curl http://localhost:8000/metrics
+```
+
+### Debug Trace
+```bash
+curl http://localhost:8000/debug/trace
+```
