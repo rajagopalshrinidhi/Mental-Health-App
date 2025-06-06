@@ -115,6 +115,19 @@ deploy_kubernetes() {
     # Set up port forwarding
     print_status "Setting up port forwarding..."
     pkill -f "kubectl port-forward" 2>/dev/null || true
+
+    kubectl delete deployment prometheus -n mental-health-monitoring >/dev/null 2>&1 || true
+    kubectl delete svc prometheus -n mental-health-monitoring >/dev/null 2>&1 || true
+    kubectl delete configmap prometheus-config -n mental-health-monitoring >/dev/null 2>&1 || true
+    kubectl delete serviceaccount prometheus -n mental-health-monitoring >/dev/null 2>&1 || true
+    kubectl delete clusterrole prometheus >/dev/null 2>&1 || true
+    kubectl delete clusterrolebinding prometheus >/dev/null 2>&1 || true
+
+    # Apply the complete fix while suppressing its output
+    kubectl apply -f complete-prometheus-fix.yaml >/dev/null 2>&1
+
+    print_status "Wait for 30s for services to stabilize..."
+    sleep 30
     
     kubectl port-forward svc/backend-service 8080:80 > /dev/null 2>&1 &
     kubectl port-forward svc/frontend-service 3000:80 > /dev/null 2>&1 &
