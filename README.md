@@ -19,8 +19,6 @@ Welcome to the Mental Health Companion! This project provides a supportive and e
         └── package-lock.json
         └── package.json
     └── 📁monitoring
-        └── alert_rules.yml
-        └── alertmanager.yml
         └── 📁grafana
             └── 📁dashboards
                 └── mental-health-mlops.json
@@ -29,6 +27,8 @@ Welcome to the Mental Health Companion! This project provides a supportive and e
                     └── dashboard.yml
                 └── 📁datasources
                     └── prometheus.yml
+        └── alert_rules.yml
+        └── alertmanager.yml
         └── prometheus.yml
     └── .gitignore
     └── agent.py
@@ -38,7 +38,6 @@ Welcome to the Mental Health Companion! This project provides a supportive and e
     └── enterprise_monitoring.py
     └── k8s-grafana-dashboard.yaml
     └── k8s-grafana-jaeger.yaml
-    └── k8s-ingress.yaml
     └── k8s-mental-health-app.yaml
     └── k8s-monitoring-stack.yaml
     └── k8s-prometheus.yaml
@@ -77,7 +76,6 @@ Welcome to the Mental Health Companion! This project provides a supportive and e
 4. Access the application at:
    **http://localhost:8000**
    **Grafana: http://localhost:3001 (admin/admin123)**
-   **Jaeger: http://localhost:16686**
 
 5.  To shut down the containers:
 ```sh
@@ -102,7 +100,6 @@ docker compose down
 4. Access the application:
    - App: http://localhost:8080
    - Grafana: http://localhost:3001 (admin/admin123)
-   - Jaeger: http://localhost:16686
    - Prometheus: http://localhost:9090
 
 5. Free up resources:
@@ -166,9 +163,6 @@ These are available at the moment when deploying via Docker alone
 - **URL**: http://localhost:9090
 - **Targets**: http://localhost:9090/targets
 - **Graph**: http://localhost:9090/graph
-
-### Jaeger (Distributed Tracing)
-- **URL**: http://localhost:16686
 
 ### Alertmanager (Alerts)
 - **URL**: http://localhost:9093

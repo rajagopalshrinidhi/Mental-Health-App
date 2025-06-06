@@ -44,6 +44,9 @@ show_usage() {
 
 check_prerequisites() {
     print_status "Checking prerequisites..."
+
+    export GOOGLE_APPLICATION_CREDENTIALS="/users/shrinidhirajagopal/Downloads/GCP_SA_Key.json"
+    export GOOGLE_CLOUD_PROJECT=spheric-hawk-447520-e5
     
     # Check Docker
     if ! command -v docker &> /dev/null; then
@@ -144,7 +147,7 @@ deploy_kubernetes() {
     echo "Access URLs:"
     echo "   App: http://localhost:8080"
     echo "   Grafana: http://localhost:3001 (admin/admin123)"
-    echo "   Jaeger: http://localhost:16686"
+    #echo "   Jaeger: http://localhost:16686"
     echo "   Prometheus: http://localhost:9090"
 }
 
@@ -174,7 +177,7 @@ deploy_docker() {
     echo "🌐 Access URLs:"
     echo "   App: http://localhost:8000"
     echo "   Grafana: http://localhost:3001 (admin/admin123)"
-    echo "   Jaeger: http://localhost:16686"
+    #echo "   Jaeger: http://localhost:16686"
 }
 
 deploy_local() {
