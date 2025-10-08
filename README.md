@@ -234,3 +234,9 @@ curl http://localhost:8000/metrics
 ```bash
 curl http://localhost:8000/debug/trace
 ```
+
+### Test Jaeger Trace (Recommended)
+```bash
+curl http://localhost:8000/test-trace
+```
+This endpoint creates nested spans to verify Jaeger tracing is working properly.

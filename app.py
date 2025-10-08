@@ -207,6 +207,31 @@ async def debug_trace():
         logger.info("Debug trace executed")
         return {"message": "Trace generated", "trace_id": hex(span.get_span_context().trace_id)}
 
+@app.get("/test-trace")
+async def test_trace():
+    """Test endpoint to explicitly send traces to Jaeger"""
+    with enterprise_monitor.tracer.start_as_current_span("TEST_TRACE") as span:
+        span.set_attribute("service.name", "mental-health-app")
+        span.set_attribute("test", "explicit")
+        span.set_attribute("endpoint", "/test-trace")
+        
+        # Create nested spans to show hierarchy
+        with enterprise_monitor.tracer.start_as_current_span("nested_operation_1") as nested1:
+            nested1.set_attribute("operation", "data_processing")
+            await asyncio.sleep(0.05)
+            
+            with enterprise_monitor.tracer.start_as_current_span("nested_operation_2") as nested2:
+                nested2.set_attribute("operation", "validation")
+                await asyncio.sleep(0.03)
+        
+        logger.info("Test trace sent to Jaeger")
+        return {
+            "message": "Test trace sent to Jaeger",
+            "trace_id": hex(span.get_span_context().trace_id),
+            "span_id": hex(span.get_span_context().span_id),
+            "tracing_enabled": enterprise_monitor.tracing_enabled
+        }
+
 @app.get("/stats/dashboard")
 async def dashboard_stats():
     """Stats endpoint for custom dashboards"""

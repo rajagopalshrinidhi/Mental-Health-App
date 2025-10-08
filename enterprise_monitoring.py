@@ -137,7 +137,7 @@ class EnterpriseMonitoring:
         try:
             # Check if tracing should be disabled
             if os.getenv('OTEL_TRACES_EXPORTER') == 'none' or os.getenv('ENVIRONMENT') == 'local':
-                logger.info("Tracing disabled by environment configuration")
+                logger.info("🚫 Tracing disabled by environment configuration")
                 trace.set_tracer_provider(TracerProvider())
                 self.tracer = trace.get_tracer(__name__)
                 self.tracing_enabled = False
@@ -162,44 +162,45 @@ class EnterpriseMonitoring:
             # Try different exporters in order of preference
             span_processor = None
             
-            # Option 1: OTLP HTTP (most reliable)
+            # Option 1: OTLP HTTP (most reliable for Jaeger)
             if OTLP_AVAILABLE and not span_processor:
                 try:
-                    jaeger_endpoint = os.getenv('JAEGER_ENDPOINT', 'http://jaeger:14268/api/traces')
-                    logger.info(f"Attempting OTLP HTTP exporter to {jaeger_endpoint}")
+                    # Use OTLP HTTP endpoint - port 4318 for HTTP, not 14268 (which is Jaeger Thrift)
+                    jaeger_endpoint = os.getenv('JAEGER_OTLP_ENDPOINT', 'http://jaeger:4318/v1/traces')
+                    logger.info(f"🎯 Attempting OTLP HTTP exporter to {jaeger_endpoint}")
                     
                     otlp_exporter = OTLPSpanExporter(
                         endpoint=jaeger_endpoint,
                         headers={}
                     )
                     span_processor = BatchSpanProcessor(otlp_exporter)
-                    logger.info(" OTLP HTTP exporter configured successfully")
+                    logger.info("✅ OTLP HTTP exporter configured successfully")
                     self.tracing_enabled = True
                     
                 except Exception as e:
-                    logger.warning(f"OTLP HTTP exporter failed: {e}")
+                    logger.warning(f"❌ OTLP HTTP exporter failed: {e}")
             
             # Option 2: Jaeger Thrift UDP (fallback)
             if JAEGER_AVAILABLE and not span_processor:
                 try:
                     jaeger_host = os.getenv('JAEGER_AGENT_HOST', 'jaeger')
                     jaeger_port = int(os.getenv('JAEGER_AGENT_PORT', '6831'))
-                    logger.info(f"Attempting Jaeger UDP exporter to {jaeger_host}:{jaeger_port}")
+                    logger.info(f"🎯 Attempting Jaeger UDP exporter to {jaeger_host}:{jaeger_port}")
                     
                     jaeger_exporter = JaegerExporter(
                         agent_host_name=jaeger_host,
                         agent_port=jaeger_port
                     )
                     span_processor = BatchSpanProcessor(jaeger_exporter)
-                    logger.info(" Jaeger UDP exporter configured successfully")
+                    logger.info("✅ Jaeger UDP exporter configured successfully")
                     self.tracing_enabled = True
                     
                 except Exception as e:
-                    logger.warning(f"Jaeger UDP exporter failed: {e}")
+                    logger.warning(f"❌ Jaeger UDP exporter failed: {e}")
             
             # Option 3: Console exporter (development fallback)
             if not span_processor:
-                logger.info("Using console exporter for development")
+                logger.info("⚠️ Using console exporter for development")
                 console_exporter = ConsoleSpanExporter()
                 span_processor = BatchSpanProcessor(console_exporter)
                 self.tracing_enabled = True
@@ -207,6 +208,7 @@ class EnterpriseMonitoring:
             # Add span processor
             if span_processor:
                 trace.get_tracer_provider().add_span_processor(span_processor)
+                logger.info(f"✅ Span processor added to tracer provider")
             
             # Setup metrics
             if PROMETHEUS_READER_AVAILABLE:
@@ -217,9 +219,9 @@ class EnterpriseMonitoring:
                         metric_readers=[prometheus_reader]
                     ))
                     self.meter = metrics.get_meter(__name__)
-                    logger.info("Prometheus metrics reader configured")
+                    logger.info("✅ Prometheus metrics reader configured")
                 except Exception as e:
-                    logger.warning(f"Prometheus reader failed: {e}")
+                    logger.warning(f"⚠️ Prometheus reader failed: {e}")
                     metrics.set_meter_provider(MeterProvider(resource=resource))
                     self.meter = metrics.get_meter(__name__)
             else:
@@ -228,10 +230,10 @@ class EnterpriseMonitoring:
                         
             self.setup_metrics()
 
-            logger.info(f"OpenTelemetry setup complete for {self.service_name} (tracing: {self.tracing_enabled})")
+            logger.info(f"🚀 OpenTelemetry setup complete for {self.service_name} (tracing: {self.tracing_enabled})")
             
         except Exception as e:
-            logger.error(f"OpenTelemetry setup failed: {e}")
+            logger.error(f"❌ OpenTelemetry setup failed: {e}")
             # Minimal fallback setup
             trace.set_tracer_provider(TracerProvider())
             self.tracer = trace.get_tracer(__name__)
@@ -274,11 +276,11 @@ class EnterpriseMonitoring:
             if self.tracing_enabled:
                 FastAPIInstrumentor.instrument_app(app, tracer_provider=trace.get_tracer_provider())
                 RequestsInstrumentor().instrument()
-                logger.info(" FastAPI instrumented with OpenTelemetry")
+                logger.info("✅ FastAPI instrumented with OpenTelemetry")
             else:
-                logger.info("FastAPI instrumentation skipped (tracing disabled)")
+                logger.info("⚠️ FastAPI instrumentation skipped (tracing disabled)")
         except Exception as e:
-            logger.warning(f"Failed to instrument FastAPI: {e}")
+            logger.warning(f"❌ Failed to instrument FastAPI: {e}")
         
         return app
     
