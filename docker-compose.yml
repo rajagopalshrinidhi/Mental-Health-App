@@ -1,6 +1,3 @@
-# docker-compose-mlops.yml - Updated with fixed Jaeger config
-version: '3.9'
-
 networks:
   monitoring:
     driver: bridge

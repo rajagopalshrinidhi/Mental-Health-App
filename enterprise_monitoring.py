@@ -135,8 +135,11 @@ class EnterpriseMonitoring:
     def setup_telemetry(self):
         """Setup OpenTelemetry with multiple fallback options"""
         try:
+            
+            environment = os.getenv('ENVIRONMENT', 'production')
+
             # Check if tracing should be disabled
-            if os.getenv('OTEL_TRACES_EXPORTER') == 'none' or os.getenv('ENVIRONMENT') == 'local':
+            if os.getenv('OTEL_TRACES_EXPORTER') == 'none' or environment == 'local':
                 logger.info("🚫 Tracing disabled by environment configuration")
                 trace.set_tracer_provider(TracerProvider())
                 self.tracer = trace.get_tracer(__name__)
@@ -148,7 +151,7 @@ class EnterpriseMonitoring:
                 "service.name": self.service_name,
                 "service.version": "1.2.0",
                 "service.instance.id": f"{self.service_name}-001",
-                "deployment.environment": os.getenv('ENVIRONMENT', 'production')
+                "deployment.environment": environment
             })
             
             # Setup tracing
