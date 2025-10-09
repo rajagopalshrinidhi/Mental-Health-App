@@ -124,6 +124,7 @@ docker compose down
       ```sh
    export GOOGLE_CLOUD_PROJECT="<name of Google Cloud project>"
    ```
+   Please verify if the LLM being used in the app is still valid. Use the latest stable version from https://cloud.google.com/vertex-ai/generative-ai/docs/learn/model-versions
 
 3. Save and reload the profile:
    ```sh

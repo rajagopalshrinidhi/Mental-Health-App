@@ -34,12 +34,15 @@ show_usage() {
     echo "  docker      - Deploy using Docker Compose"
     echo "  local       - Run locally for development"
     echo "  all         - Show status of all environments"
+    echo "  test        - Test current deployment"
+    echo "  env         - Show environment variables"
+    echo "  cleanup     - Clean up all deployments"
     echo ""
     echo "Examples:"
-    echo "  $0 kubernetes   # Deploy to K8s"
-    echo "  $0 docker       # Deploy with Docker Compose"
-    echo "  $0 local        # Run local development server"
-    echo "  $0 all          # Check all environments"
+    echo "  $0 kubernetes   # Deploy to K8s (ENVIRONMENT=production)"
+    echo "  $0 docker       # Deploy with Docker (ENVIRONMENT=docker)"
+    echo "  $0 local        # Run local dev (ENVIRONMENT=local)"
+    echo "  $0 env          # Show current environment config"
 }
 
 check_prerequisites() {
@@ -74,6 +77,16 @@ build_images() {
     print_success "Images built successfully"
 }
 
+show_environment_info() {
+    print_status "Current environment configuration:"
+    echo "ENVIRONMENT: ${ENVIRONMENT:-not set}"
+    echo "DEPLOYMENT_TYPE: ${DEPLOYMENT_TYPE:-not set}"
+    echo "GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT:-not set}"
+    echo "GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS:-not set}"
+    echo "JAEGER_ENDPOINT: ${JAEGER_ENDPOINT:-not set}"
+    echo "OTEL_TRACES_EXPORTER: ${OTEL_TRACES_EXPORTER:-not set}"
+}
+
 deploy_kubernetes() {
     print_status "Deploying to Kubernetes..."
     
@@ -88,6 +101,11 @@ deploy_kubernetes() {
         print_error "Cannot connect to Kubernetes cluster"
         exit 1
     fi
+    
+    # Set environment variables for Kubernetes deployment
+    print_status "Setting environment variables for Kubernetes..."
+    export ENVIRONMENT=production
+    export DEPLOYMENT_TYPE=kubernetes
     
     build_images
     
@@ -160,6 +178,11 @@ deploy_docker() {
         exit 1
     fi
     
+    # Set environment variables for Docker deployment
+    print_status "Setting environment variables for Docker..."
+    export ENVIRONMENT=docker
+    export DEPLOYMENT_TYPE=docker
+    
     build_images
     
     # Use docker-compose
@@ -183,11 +206,17 @@ deploy_docker() {
 deploy_local() {
     print_status "Setting up local development..."
     
+    # Set environment variables for local development
+    print_status "Setting environment variables for local development..."
+    export ENVIRONMENT=local
+    export DEPLOYMENT_TYPE=local
+    export OTEL_TRACES_EXPORTER=none
+    export JAEGER_ENDPOINT=""
+    
     print_status "Installing Python dependencies..."
     pip install -r requirements.txt
     
     print_status "Starting backend server..."
-    export OTEL_TRACES_EXPORTER=none
     python app.py
     echo ""
     echo "Frontend will be served by the backend at:"
@@ -261,6 +290,10 @@ check_all_environments() {
 test_deployment() {
     print_status "Testing deployment..."
     
+    # Show environment info
+    show_environment_info
+    echo ""
+    
     # Test backend on multiple ports
     for port in 8000 8080; do
         if curl -s http://localhost:$port/health > /dev/null; then
@@ -299,7 +332,6 @@ cleanup() {
     print_success "Cleanup complete"
 }
 
-# Main script logic
 case "$1" in
     kubernetes|k8s)
         check_prerequisites
@@ -321,6 +353,9 @@ case "$1" in
     test)
         test_deployment
         ;;
+    # env|environment)
+    #     show_environment_info
+    #     ;;
     cleanup|clean)
         cleanup
         ;;

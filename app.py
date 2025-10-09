@@ -100,7 +100,7 @@ async def mental_health(input: UserInput, request: Request):
         return MentalHealthResponse(
             response=response,
             session_id=session_id,
-            model_version="gemini-2.5-flash-preview-05-20",
+            model_version="gemini-2.5-flash",
             quality_score=quality_score,
             response_time_ms=response_time_ms
         )
@@ -113,7 +113,7 @@ async def mental_health(input: UserInput, request: Request):
             detail="An error occurred while processing your request. Please try again."
         )
 
-@enterprise_monitor.track_ai_request("gemini-2.5-flash-preview-05-20")
+@enterprise_monitor.track_ai_request("gemini-2.5-flash")
 async def get_monitored_ai_response(user_input: str) -> str:
     """AI response with monitoring wrapper"""
     return await conversation_manager.process_input(user_input, get_mental_health_response)
