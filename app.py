@@ -100,7 +100,7 @@ async def mental_health(input: UserInput, request: Request):
         return MentalHealthResponse(
             response=response,
             session_id=session_id,
-            model_version="gemini-2.5-flash-preview-05-20",
+            model_version="gemini-2.5-flash",
             quality_score=quality_score,
             response_time_ms=response_time_ms
         )
@@ -113,7 +113,7 @@ async def mental_health(input: UserInput, request: Request):
             detail="An error occurred while processing your request. Please try again."
         )
 
-@enterprise_monitor.track_ai_request("gemini-2.5-flash-preview-05-20")
+@enterprise_monitor.track_ai_request("gemini-2.5-flash")
 async def get_monitored_ai_response(user_input: str) -> str:
     """AI response with monitoring wrapper"""
     return await conversation_manager.process_input(user_input, get_mental_health_response)
@@ -206,6 +206,31 @@ async def debug_trace():
         await asyncio.sleep(0.1)  # Simulate work
         logger.info("Debug trace executed")
         return {"message": "Trace generated", "trace_id": hex(span.get_span_context().trace_id)}
+
+@app.get("/test-trace")
+async def test_trace():
+    """Test endpoint to explicitly send traces to Jaeger"""
+    with enterprise_monitor.tracer.start_as_current_span("TEST_TRACE") as span:
+        span.set_attribute("service.name", "mental-health-app")
+        span.set_attribute("test", "explicit")
+        span.set_attribute("endpoint", "/test-trace")
+        
+        # Create nested spans to show hierarchy
+        with enterprise_monitor.tracer.start_as_current_span("nested_operation_1") as nested1:
+            nested1.set_attribute("operation", "data_processing")
+            await asyncio.sleep(0.05)
+            
+            with enterprise_monitor.tracer.start_as_current_span("nested_operation_2") as nested2:
+                nested2.set_attribute("operation", "validation")
+                await asyncio.sleep(0.03)
+        
+        logger.info("Test trace sent to Jaeger")
+        return {
+            "message": "Test trace sent to Jaeger",
+            "trace_id": hex(span.get_span_context().trace_id),
+            "span_id": hex(span.get_span_context().span_id),
+            "tracing_enabled": enterprise_monitor.tracing_enabled
+        }
 
 @app.get("/stats/dashboard")
 async def dashboard_stats():

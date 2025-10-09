@@ -101,8 +101,10 @@ spec:
         image: jaegertracing/all-in-one:1.51
         ports:
         - containerPort: 16686  # Jaeger UI
-        - containerPort: 14268  # HTTP collector
+        - containerPort: 14268  # Jaeger Thrift HTTP collector
         - containerPort: 14250  # gRPC collector
+        - containerPort: 4317   # OTLP gRPC
+        - containerPort: 4318   # OTLP HTTP
         - containerPort: 6831   # UDP collector
           protocol: UDP
         - containerPort: 6832   # UDP collector
@@ -148,6 +150,14 @@ spec:
       protocol: TCP
       port: 14250
       targetPort: 14250
+    - name: otlp-grpc
+      protocol: TCP
+      port: 4317
+      targetPort: 4317
+    - name: otlp-http
+      protocol: TCP
+      port: 4318
+      targetPort: 4318
     - name: udp-collector-1
       protocol: UDP
       port: 6831

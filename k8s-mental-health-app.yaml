@@ -30,16 +30,20 @@ spec:
           value: /app/credentials/api_key
         - name: GOOGLE_CLOUD_PROJECT
           value: spheric-hawk-447520-e5
+        - name: ENVIRONMENT
+          value: kubernetes
         - name: OTEL_SERVICE_NAME
           value: mental-health-companion
         - name: OTEL_SERVICE_VERSION
           value: "1.2.0"
         - name: OTEL_EXPORTER_JAEGER_AGENT_HOST
-          value: jaeger
+          value: jaeger.mental-health-monitoring
         - name: OTEL_EXPORTER_JAEGER_AGENT_PORT
           value: "6831"
         - name: OTEL_TRACES_EXPORTER
           value: jaeger
+        - name: JAEGER_OTLP_ENDPOINT
+          value: http://jaeger.mental-health-monitoring:4318/v1/traces
         - name: OTEL_RESOURCE_ATTRIBUTES
           value: service.name=mental-health-companion,service.version=1.2.0,deployment.environment=kubernetes
         volumeMounts:
